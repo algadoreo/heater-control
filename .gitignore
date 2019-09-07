@@ -1,0 +1,5 @@
+# Output files
+*.out
+
+# OS junk files
+.DS_Store

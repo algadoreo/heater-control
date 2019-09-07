@@ -1,0 +1,19 @@
+{
+    "rootdir" : "/path/to/dirfile/",
+    "fileset" : "name_of_dirfile",
+    "t_dataset" : "",
+    "h_dataset" : "",
+    "time_start" : 0,
+    "time_end" : 1000,
+    "samp_rate" : 0.2,
+    "time_opt" : 200,
+    "Ch0" : 10,
+    "Rh0" : 10,
+    "Ct0" : 100,
+    "Rt0" : 0.1,
+    "Tb0" : 0.5,
+    "setpoint" : 1.0,
+    "Kp0" : 1,
+    "Ki0" : 0.1,
+    "Kd0" : 100
+}
