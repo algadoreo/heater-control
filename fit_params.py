@@ -40,8 +40,6 @@ T0 = [0, 0]
 # PID parameters
 SETPOINT = float(initvals['setpoint'])
 params_PID0 = np.array([initvals['Kp0'], initvals['Ki0'], initvals['Kd0']], dtype=float)
-TOPT = float(initvals['time_opt'])      # time from which to start PID optimization
-ttopt = int(TOPT/TSTEP)
 
 # Initialize auxiliary arrays
 tt = np.array([])
@@ -121,7 +119,33 @@ def fit_params(params, tvec, Tt):
 
 def fit_paramsPID(params, tvec):
     solnPID = solve_ivp(lambda t, T: HeaterIVP(t, T, lsq.x, params_PID=params), t_span, T0, t_eval=tpid)
-    return (SETPOINT - solnPID.y[0][ttopt:])
+
+    # Objective function to minimize
+    weights = np.array([initvals['weight_ovrsh'], initvals['weight_trise'], initvals['weight_tset'], initvals['weight_errss']])
+    extrema_list = np.where(np.diff(np.sign(solnPID.y[1])))[0]  # returns indices just before a sign change in derivative
+    if solnPID.y[1][0] == 0:
+        extrema_list = extrema_list[1:]     # if initial conditions have deriv = 0, ignore initial point
+
+    ovrsh, t_rise, t_set, err_ss = 1.e8, 1.e8, 1.e8, 1.e8
+
+    # Overshoot
+    if len(extrema_list) > 0:
+        first_peak = extrema_list[0]
+        ovrsh = max(solnPID.y[0][first_peak], solnPID.y[0][first_peak+1]) - SETPOINT
+
+    # Rise time
+    t_rise = 0.
+
+    # Settling time
+    T_TOL = initvals['T_tol']
+    t_setflr = np.where(np.abs(np.flip(solnPID.y[0]) - SETPOINT) > T_TOL)[0][0]
+    t_set = initvals['sim_len'] - t_setflr
+
+    # Steady state error
+    if t_set < initvals['sim_len']:
+        err_ss = np.mean(SETPOINT - solnPID.y[0][t_set:])
+
+    return np.array([ovrsh, t_rise, t_set, err_ss]) * weights
 
 ###########################################################################
 #
@@ -163,7 +187,7 @@ plt.tick_params(right=True, top=True)
 plt.legend()
 
 # Fit PID parameters
-tpid = np.arange(0, 1000, TSTEP)
+tpid = np.arange(0, initvals['sim_len'], TSTEP)
 t_span = [tpid[0], tpid[-1]]
 soln = solve_ivp(lambda t, T: HeaterIVP(t, T, lsq.x, params_PID=params_PID0), t_span, T0, t_eval=tpid)
 
@@ -179,7 +203,7 @@ solnPIDfit = solve_ivp(lambda t, T: HeaterIVP(t, T, lsq.x, params_PID=lsqPID.x),
 
 # Write best fit values to disk
 FILEOUT = "bestfit_" + initvals['t_dataset'] + ".out"
-outputdict = OrderedDict(zip(["fileset", "t_dataset", "h_dataset", "time_start", "time_end", "samp_rate", "t_opt"], [FILESET, TDATASET, HDATASET, TSTR, TEND, TSTEP, TOPT]))
+outputdict = OrderedDict(zip(["fileset", "t_dataset", "h_dataset", "time_start", "time_end", "samp_rate"], [FILESET, TDATASET, HDATASET, TSTR, TEND, TSTEP]))
 outputdict.update(OrderedDict((k, bestfit[k]) for k in ["Ch", "Rh", "Ct", "Rt", "Tb"]))
 outputdict.update(zip(["T0", "setpoint"], [float(Tdat[ton_idx]), SETPOINT]))
 outputdict.update(OrderedDict((k, bestfit[k]) for k in ["Kp", "Ki", "Kd"]))
@@ -189,14 +213,12 @@ with open(FILEOUT, "w") as outfile:
 plt.figure()
 plt.subplot(3, 1, (1, 2))
 plt.axhline(SETPOINT, color='C7', linestyle='--')
-plt.axvline(TOPT, color='C7', linestyle='--')
 plt.plot(tpid, soln.y[0], 'C1--', label='Initial guess')
 plt.plot(tpid, solnPIDfit.y[0], 'C0', label='Optimized PID')
 plt.ylabel('Temperature [K]')
 plt.legend()
 plt.tick_params(right=True, top=True)
 plt.subplot(3, 1, 3)
-plt.axvline(TOPT, color='C7', linestyle='--')
 plt.semilogy(tpid, np.abs(SETPOINT - soln.y[0])/SETPOINT, 'C8--')
 plt.semilogy(tpid, np.abs(SETPOINT - solnPIDfit.y[0])/SETPOINT, 'C8')
 plt.xlabel("Time [s]")
