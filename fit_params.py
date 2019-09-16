@@ -45,6 +45,7 @@ params_PID0 = np.array([initvals['Kp0'], initvals['Ki0'], initvals['Kd0']], dtyp
 tt = np.array([])
 Tt = np.array([])
 Qt = np.array([])
+It = np.array([])
 tloops = []
 
 ###########################################################################
@@ -74,24 +75,46 @@ toff = toff_idx * TSTEP
 ###########################################################################
 def Qfunc(t, T_present, T_deriv, params_PID):
     Kp, Ki, Kd = params_PID[0], params_PID[1], params_PID[2]
-    
-    err = SETPOINT - T_present
     try:
-        integral = np.dot(SETPOINT - Tt, np.ediff1d(tt, to_begin=0)) # Riemann sum
+        h = t - tt[-1]
     except:
-        integral = 0.
-    deriv = -T_deriv
+        h = 0.
+    a = 5.e-6 * (100*h)
+    b = 1.0 - a
+    
+    # Proportional term
+    err = SETPOINT - T_present
+
+    # Integral term
+    global It
+    integral = a * err
+    try:
+        integral = integral + b*It[-1]
+    except:
+        pass
+    integral = max(0, min(0.5, integral))
+    It = np.append(It, integral)
+
+    # Derivative term
+    if h != 0:
+        deriv = (Tt[-1] - T_present) / (100*h)
+    else:
+        deriv = -T_deriv
+
     Q = Kp*err + Ki*integral + Kd*deriv
     return max(QMIN, min(QMAX, Q))
 
+def rewindTime(t):
+    global tt, Tt, Qt, It
+    tloops.append(len(tt)-3)
+    tloops.append(len(tt)-2)
+    Tt = Tt[tt<t]
+    Qt = Qt[tt<t]
+    It = It[tt<t]
+    tt = tt[tt<t]
+
 def writeAuxArrays(t, T, Q):
     global tt, Tt, Qt
-    if len(tt) and t <= tt[-1]:
-        tloops.append(len(tt)-3)
-        tloops.append(len(tt)-2)
-        Tt = Tt[tt<t]
-        Qt = Qt[tt<t]
-        tt = tt[tt<t]
     Tt = np.append(Tt, T)
     Qt = np.append(Qt, Q)
     tt = np.append(tt, t)
@@ -100,6 +123,8 @@ def HeaterIVP(t, T, params_circ, params_PID = None, Q = 0):
     a, b, c, d = params_circ[0], params_circ[1], params_circ[2], params_circ[3]
     x1, x2 = T[0], T[1]
     if params_PID is not None:
+        if len(tt) and t <= tt[-1]:
+            rewindTime(t)
         Q = Qfunc(t, x1, x2, params_PID)
         writeAuxArrays(t, x1, Q)
     
