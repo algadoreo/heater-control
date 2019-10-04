@@ -142,6 +142,10 @@ class heater:
         return (Tt[self.p.ton_idx:] - soln_all)
 
     def fit_paramsPID(self, params, tvec, iparams_circ):
+        # Reset auxiliary arrays
+        self.__init__(self.p)
+
+        # Solve heater IVP using PID values
         solnPID = solve_ivp(lambda t, T: self.HeaterIVP(t, T, iparams_circ, params_PID=params), self.p.t_span, self.p.T0, t_eval=tvec)
 
         # Objective function to minimize
