@@ -5,6 +5,7 @@
     "h_dataset" : "",
     "time_start" : 0,
     "time_end" : 1000,
+    "time_lag" : 0,
     "samp_rate" : 0.2,
     "Ch0" : 10,
     "Rh0" : 10,

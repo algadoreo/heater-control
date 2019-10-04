@@ -20,6 +20,7 @@ class initvals:
         self.TSTR = int(self.params['time_start'])
         self.TEND = int(self.params['time_end'])
         self.TLEN = self.TEND - self.TSTR
+        self.TLAG = int(self.params['time_lag'])
         self.TSTEP = float(self.params['samp_rate'])    # timestep [seconds]
 
         self.QMIN, self.QMAX = 0, 100
@@ -46,7 +47,7 @@ class initvals:
 
         df = gd.dirfile(os.path.join(self.ROOTDIR, self.FILESET))
         self.Tdat = df.getdata(self.TDATASET)[self.TSTR:self.TEND]
-        self.Qdat = np.maximum(self.QMIN, np.minimum(self.QMAX, df.getdata(self.HDATASET)))[self.TSTR:self.TEND]
+        self.Qdat = np.maximum(self.QMIN, np.minimum(self.QMAX, df.getdata(self.HDATASET)))[self.TSTR-self.TLAG:self.TEND-self.TLAG]
 
         self.tvec = self.TSTEP * np.arange(self.TLEN)
 

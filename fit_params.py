@@ -69,7 +69,7 @@ solnPIDfit = solve_ivp(lambda t, T: h.HeaterIVP(t, T, lsq.x, params_PID=lsqPID.x
 
 # Write best fit values to disk
 FILEOUT = "bestfit_" + p.params['t_dataset'] + ".out"
-outputdict = OrderedDict(zip(["fileset", "t_dataset", "h_dataset", "time_start", "time_end", "samp_rate"], [p.FILESET, p.TDATASET, p.HDATASET, p.TSTR, p.TEND, p.TSTEP]))
+outputdict = OrderedDict(zip(["fileset", "t_dataset", "h_dataset", "time_start", "time_end", "time_lag", "samp_rate"], [p.FILESET, p.TDATASET, p.HDATASET, p.TSTR, p.TEND, p.TLAG, p.TSTEP]))
 outputdict.update(OrderedDict((k, bestfit[k]) for k in ["Ch", "Rh", "Ct", "Rt", "Tb"]))
 outputdict.update(zip(["T0", "setpoint"], [float(p.Tdat[p.ton_idx]), p.SETPOINT]))
 outputdict.update(OrderedDict((k, bestfit[k]) for k in ["Kp", "Ki", "Kd"]))
