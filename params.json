@@ -7,11 +7,11 @@
     "time_end" : 1000,
     "time_lag" : 0,
     "samp_rate" : 0.2,
-    "Ch0" : 10,
-    "Rh0" : 10,
-    "Ct0" : 100,
-    "Rt0" : 0.1,
-    "Tb0" : 0.5,
+    "Ch" : 10,
+    "Rh" : 10,
+    "Ct" : 100,
+    "Rt" : 0.1,
+    "Tb" : 0.5,
     "setpoint" : 1.0,
     "sim_len" : 1000,
     "T_tol" : 0.05,
@@ -19,7 +19,7 @@
     "weight_trise" : 0,
     "weight_tset" : 0.1,
     "weight_errss" : 100,
-    "Kp0" : 1,
-    "Ki0" : 0.1,
-    "Kd0" : 100
+    "Kp" : 1,
+    "Ki" : 0.1,
+    "Kd" : 100
 }

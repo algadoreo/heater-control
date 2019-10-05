@@ -18,11 +18,12 @@ plt.rcParams["figure.dpi"] = 70
 ###########################################################################
 # Initialize objects
 p = initvals()
+p.loadData()
 h = heater(p)
 
 # Fit (thermal) circuit parameters
 print("Best fit circuit parameters:")
-lsq = least_squares(h.fit_params, p.params0, bounds=(1.e-5, 1.e5), args=(p.tvec, p.Tdat-p.Tdat[p.ton_idx]), max_nfev=1e5)
+lsq = least_squares(h.fit_params, p.iparams_circ, bounds=(1.e-5, 1.e5), args=(p.tvec, p.Tdat-p.Tdat[p.ton_idx]), max_nfev=1e5)
 
 bestfit = dict(zip(["Ch", "Rh", "Ct", "Rt"], 1./lsq.x[:4]))
 bestfit["Tb"] = lsq.x[4]
@@ -55,10 +56,10 @@ plt.tick_params(right=True, top=True)
 plt.legend()
 
 # Fit PID parameters
-soln = solve_ivp(lambda t, T: h.HeaterIVP(t, T, lsq.x, params_PID=p.params_PID0), p.t_span, p.T0, t_eval=p.tpid)
+soln = solve_ivp(lambda t, T: h.HeaterIVP(t, T, lsq.x, params_PID=p.params_PID), p.t_span, p.T0, t_eval=p.tpid)
 
 print("\nBest fit PID gains:")
-lsqPID = least_squares(h.fit_paramsPID, p.params_PID0, bounds=(0., 1.e4), args=(p.tpid, lsq.x), max_nfev=1e5)
+lsqPID = least_squares(h.fit_paramsPID, p.params_PID, bounds=(0., 1.e4), args=(p.tpid, lsq.x), max_nfev=1e5)
 
 bestfit.update(zip(["Kp", "Ki", "Kd"], lsqPID.x))
 for k in ["Kp", "Ki", "Kd"]:
@@ -68,10 +69,11 @@ for k in ["Kp", "Ki", "Kd"]:
 solnPIDfit = solve_ivp(lambda t, T: h.HeaterIVP(t, T, lsq.x, params_PID=lsqPID.x), p.t_span, p.T0, t_eval=p.tpid)
 
 # Write best fit values to disk
-FILEOUT = "bestfit_" + p.params['t_dataset'] + ".out"
+FILEOUT = "bestfit_" + p.TDATASET + ".out"
 outputdict = OrderedDict(zip(["fileset", "t_dataset", "h_dataset", "time_start", "time_end", "time_lag", "samp_rate"], [p.FILESET, p.TDATASET, p.HDATASET, p.TSTR, p.TEND, p.TLAG, p.TSTEP]))
 outputdict.update(OrderedDict((k, bestfit[k]) for k in ["Ch", "Rh", "Ct", "Rt", "Tb"]))
-outputdict.update(zip(["T0", "setpoint"], [float(p.Tdat[p.ton_idx]), p.SETPOINT]))
+outputdict.update(zip(["T0", "setpoint", "sim_len", "T_tol"], [float(p.Tdat[p.ton_idx]), p.SETPOINT, p.params['sim_len'], p.params['T_tol']]))
+outputdict.update(zip(["weight_ovrsh", "weight_trise", "weight_tset", "weight_errss"], [p.params['weight_ovrsh'], p.params['weight_trise'], p.params['weight_tset'], p.params['weight_errss']]))
 outputdict.update(OrderedDict((k, bestfit[k]) for k in ["Kp", "Ki", "Kd"]))
 with open(FILEOUT, "w") as outfile:
     json.dump(outputdict, outfile, indent=4)

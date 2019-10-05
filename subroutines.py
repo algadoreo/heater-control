@@ -7,13 +7,13 @@ from scipy import integrate
 from scipy.integrate import solve_ivp
 
 class initvals:
-    def __init__(self):
+    def __init__(self, filename='params.json'):
         # Load parameters from file, or exit if no file found
         try:
-            with open('params.json') as handle:
+            with open(filename) as handle:
                 self.params = json.loads(handle.read())
         except:
-            print("File 'params.json' not found.")
+            print("File '" + filename + "' not found.")
             sys.exit()
 
         # Constants
@@ -26,30 +26,34 @@ class initvals:
         self.QMIN, self.QMAX = 0, 100
 
         # Physical constants
-        circ_params0 = np.array([self.params['Ch0'], self.params['Rh0'], self.params['Ct0'], self.params['Rt0']], dtype=float)
-        Tb0 = float(self.params['Tb0'])
-        self.params0 = np.append(1./circ_params0, Tb0)
+        params_circ = np.array([self.params['Ch'], self.params['Rh'], self.params['Ct'], self.params['Rt']], dtype=float)
+        Tb = float(self.params['Tb'])
+        self.iparams_circ = np.append(1./params_circ, Tb)
 
         # ODE initial conditions ([T0, Tdot0])
         self.T0 = [0, 0]
 
         # PID parameters
         self.SETPOINT = float(self.params['setpoint'])
-        self.params_PID0 = np.array([self.params['Kp0'], self.params['Ki0'], self.params['Kd0']], dtype=float)
+        self.params_PID = np.array([self.params['Kp'], self.params['Ki'], self.params['Kd']], dtype=float)
 
-        # Load data
+        # Time vectors
+        self.tvec = self.TSTEP * np.arange(self.TLEN)
+
+        self.tpid = np.arange(0, self.params['sim_len'], self.TSTEP)
+        self.t_span = [self.tpid[0], self.tpid[-1]]
+
+    def loadData(self):
         self.ROOTDIR = self.params['rootdir']
         self.FILESET = self.params['fileset']
-        self.TDATASET = 't_' + self.params['t_dataset']
-        self.HDATASET = 'h_' + self.params['t_dataset']
+        self.TDATASET = self.params['t_dataset']
+        self.HDATASET = self.params['t_dataset']
         if ('h_dataset' in self.params.keys()) and (self.params['h_dataset'] != ""):
-            self.HDATASET = 'h_' + self.params['h_dataset']
+            self.HDATASET = self.params['h_dataset']
 
         df = gd.dirfile(os.path.join(self.ROOTDIR, self.FILESET))
-        self.Tdat = df.getdata(self.TDATASET)[self.TSTR:self.TEND]
-        self.Qdat = np.maximum(self.QMIN, np.minimum(self.QMAX, df.getdata(self.HDATASET)))[self.TSTR-self.TLAG:self.TEND-self.TLAG]
-
-        self.tvec = self.TSTEP * np.arange(self.TLEN)
+        self.Tdat = df.getdata('t_' + self.TDATASET)[self.TSTR:self.TEND]
+        self.Qdat = np.maximum(self.QMIN, np.minimum(self.QMAX, df.getdata('h_' + self.HDATASET)))[self.TSTR-self.TLAG:self.TEND-self.TLAG]
 
         idx_power_on = np.where(self.Qdat>0.5)[0]
         self.ton_idx = idx_power_on[0]
@@ -59,9 +63,6 @@ class initvals:
 
         self.ton = self.ton_idx * self.TSTEP
         self.toff = self.toff_idx * self.TSTEP
-
-        self.tpid = np.arange(0, self.params['sim_len'], self.TSTEP)
-        self.t_span = [self.tpid[0], self.tpid[-1]]
 
 ###########################################################################
 class heater:
