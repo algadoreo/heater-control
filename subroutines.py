@@ -19,7 +19,7 @@ class initvals:
         # Constants
         self.TSTR = int(self.params['time_start'])
         self.TEND = int(self.params['time_end'])
-        self.TLEN = self.TEND - self.TSTR
+        self.TLEN = self.TEND + 1 - self.TSTR
         self.TLAG = int(self.params['time_lag'])
         self.TSTEP = float(self.params['samp_rate'])    # timestep [seconds]
 
@@ -38,7 +38,8 @@ class initvals:
         self.params_PID = np.array([self.params['Kp'], self.params['Ki'], self.params['Kd']], dtype=float)
 
         # Time vectors
-        self.tvec = self.TSTEP * np.arange(self.TLEN)
+        self.ivec = np.arange(self.TLEN)
+        self.tvec = self.ivec * self.TSTEP
 
         self.tpid = np.arange(0, self.params['sim_len'], self.TSTEP)
         self.t_span = [self.tpid[0], self.tpid[-1]]
@@ -52,8 +53,8 @@ class initvals:
             self.HDATASET = self.params['h_dataset']
 
         df = gd.dirfile(os.path.join(self.ROOTDIR, self.FILESET))
-        self.Tdat = df.getdata('t_' + self.TDATASET)[self.TSTR:self.TEND]
-        self.Qdat = np.maximum(self.QMIN, np.minimum(self.QMAX, df.getdata('h_' + self.HDATASET)))[self.TSTR-self.TLAG:self.TEND-self.TLAG]
+        self.Tdat = df.getdata('t_' + self.TDATASET)[self.TSTR:self.TEND+1]
+        self.Qdat = np.maximum(self.QMIN, np.minimum(self.QMAX, df.getdata('h_' + self.HDATASET)))[self.TSTR-self.TLAG:self.TEND+1-self.TLAG]
 
         idx_power_on = np.where(self.Qdat>0.5)[0]
         self.ton_idx = idx_power_on[0]
